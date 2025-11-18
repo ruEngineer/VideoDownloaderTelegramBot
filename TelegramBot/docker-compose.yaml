@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    volumes:
+      - videos:/app/videos
+    env_file:
+      - .env
+
+volumes:
+  videos:
