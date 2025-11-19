@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ public class TelegramBotHostedService : IHostedService
     private readonly VideoDownloader _downloader;
     private readonly ILogger<TelegramBotHostedService> _logger;
     private readonly IConfiguration _config;
+    private readonly ConcurrentDictionary<long, (int userMsgId, int botMsgId)> _lastMessages = new();
 
     public TelegramBotHostedService(
         IConfiguration config,
@@ -50,21 +52,40 @@ public class TelegramBotHostedService : IHostedService
         if (update.Message?.Text is not { } text) return;
 
         var chatId = update.Message.Chat.Id;
+        var newUserMessageId = update.Message.MessageId;
+
         _logger.LogInformation("Получено от {ChatId}: {Text}", chatId, text);
+
+        if (_lastMessages.TryGetValue(chatId, out var lastMsgs))
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _botClient.DeleteMessage(chatId, lastMsgs.userMsgId, ct);
+                    await _botClient.DeleteMessage(chatId, lastMsgs.botMsgId, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Не удалось удалить старые сообщения в чате {ChatId}", chatId);
+                }
+            });
+        }
 
         if (text.StartsWith("/start", StringComparison.OrdinalIgnoreCase))
         {
-            await botClient.SendMessage(chatId, "Привет! Пришли ссылку на YouTube или TikTok, Pinterest.", cancellationToken: ct);
+            await botClient.SendMessage(chatId, "Пришлите ссылку на TikTok или Pinterest.", cancellationToken: ct);
             return;
         }
 
         string? videoPath = await _downloader.DownloadVideoAsync(text, ct);
+        Message botMessage;
 
         if (videoPath is null)
         {
-            await _botClient.SendMessage(
+            botMessage = await _botClient.SendMessage(
                 chatId: chatId,
-                text: "❌ Не удалось скачать видео. Проверь ссылку или попробуй короткое видео (<50 МБ).",
+                text: "❌ Не удалось скачать видео. Проверьте ссылку или попробуйте короткое видео (<40 МБ).",
                 cancellationToken: ct
             );
             return;
@@ -78,7 +99,7 @@ public class TelegramBotHostedService : IHostedService
             {
                 var videoStream = new InputFileStream(fs, videoPath);
 
-                await botClient.SendVideo(
+                botMessage = await botClient.SendVideo(
                     chatId: chatId,
                     video: videoStream,
                     caption: "✅ Вот твоё видео!",
@@ -94,12 +115,14 @@ public class TelegramBotHostedService : IHostedService
         }
         else
         {
-            await botClient.SendMessage(
+            botMessage = await botClient.SendMessage(
                 chatId: chatId,
-                text: "❌ Не удалось скачать видео. Проверь ссылку или попробуй короткое видео (<3 мин, <50 МБ).",
+                text: "❌ Не удалось скачать видео. Проверьте ссылку или попробуйте короткое видео (<40 МБ).",
                 cancellationToken: ct
             );
         }
+
+        _lastMessages[chatId] = (newUserMessageId, botMessage.MessageId);
     }
 
     private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken ct)

@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   bot:
+    restart: unless-stopped
     build: .
     volumes:
       - videos:/app/videos
