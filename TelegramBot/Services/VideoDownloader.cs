@@ -38,7 +38,7 @@ public class VideoDownloader
         }
         else
         {
-            format = "best[height<=480][filesize<40M][ext=mp4]";
+            format = "best[filesize<40M]";
         }
 
         var arguments = $"--format \"{format}\" " +
