@@ -1,4 +1,21 @@
 TelegramBot/bin/
 TelegramBot/obj/
 
+.vs/
+.vscode/
+
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+packages/
+*.nupkg
+*.snupkg
+
 .env
+
+*.log
+
+.DS_Store
+Thumbs.db
