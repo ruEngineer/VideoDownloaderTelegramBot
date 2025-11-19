@@ -78,14 +78,29 @@ public class TelegramBotHostedService : IHostedService
             return;
         }
 
+        var statusMessage = await botClient.SendMessage(
+            chatId: chatId,
+            text: "Скачиваю видео...",
+            cancellationToken: ct
+        );
+
         string? videoPath = await _downloader.DownloadVideoAsync(text, ct);
         Message botMessage;
+
+        try
+        {
+            await botClient.DeleteMessage(chatId, statusMessage.MessageId, ct);
+        }
+        catch
+        {
+            
+        }
 
         if (videoPath is null)
         {
             botMessage = await _botClient.SendMessage(
                 chatId: chatId,
-                text: "❌ Не удалось скачать видео. Проверьте ссылку или попробуйте короткое видео (<40 МБ).",
+                text: "❌ Проверьте ссылку. Бот работает только с Pinterest, TikTok",
                 cancellationToken: ct
             );
             return;

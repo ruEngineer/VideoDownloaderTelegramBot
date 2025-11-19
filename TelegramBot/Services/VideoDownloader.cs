@@ -38,7 +38,7 @@ public class VideoDownloader
         }
         else
         {
-            format = "best[height<=480][filesize<20M][ext=mp4]";
+            format = "best[height<=480][filesize<40M][ext=mp4]";
         }
 
         var arguments = $"--format \"{format}\" " +
@@ -98,11 +98,17 @@ public class VideoDownloader
 
     private static bool IsValidVideoUrl(string url)
     {
-        if (string.IsNullOrWhiteSpace(url)) return false;
+        if (string.IsNullOrWhiteSpace(url)) 
+        {
+            return false;
+        }
         var uri = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u : null;
-        if (uri == null) return false;
+        if (uri == null) 
+        {
+            return false;
+        }
 
-        var allowed = new[] { "youtube.com", "youtu.be", "tiktok.com", "pinterest.com", "pin.it"};
+        var allowed = new[] { "tiktok.com", "pinterest.com", "pin.it"};
         return allowed.Any(domain => uri.Host.Contains(domain, StringComparison.OrdinalIgnoreCase));
     }
 

@@ -1,0 +1,4 @@
+TelegramBot/bin/
+TelegramBot/obj/
+
+.env
