@@ -1,5 +1,5 @@
-TelegramBot/bin/
-TelegramBot/obj/
+/TelegramBot/bin/
+/TelegramBot/obj/
 
 .vs/
 .vscode/
